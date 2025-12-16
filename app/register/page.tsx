@@ -3,35 +3,35 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
+  const [agree, setAgree] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // sementara dummy login
     setTimeout(() => {
-      router.push("/dashboard")
+      router.push("/login")
       setIsLoading(false)
     }, 1000)
   }
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleRegister = async () => {
     setGoogleLoading(true)
 
     try {
@@ -41,7 +41,7 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        alert("Login dengan Google gagal. Coba lagi.")
+        alert("Daftar dengan Google gagal. Coba lagi.")
         setGoogleLoading(false)
       } else if (result?.url) {
         router.push(result.url)
@@ -68,27 +68,40 @@ export default function LoginPage() {
         {/* CARD */}
         <div className="bg-white rounded-[32px] shadow-lg p-8">
           <h2 className="text-2xl font-bold text-center mb-2">
-            Login
+            Daftar
           </h2>
 
           <p className="text-muted-foreground text-center mb-6">
-            Belum punya akun?{" "}
+            Sudah punya akun?{" "}
             <Link
-              href="/register"
+              href="/login"
               className="text-primary font-semibold hover:underline"
             >
-              Daftar
+              Masuk
             </Link>
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
+
+            {/* NAMA */}
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D6A4F]" />
+              <Input
+                type="text"
+                placeholder="Nama Lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading || googleLoading}
+                className="pl-12 border-2 border-[#2D6A4F]/40 focus:border-[#2D6A4F] focus:ring-0"
+              />
+            </div>
 
             {/* EMAIL */}
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D6A4F]" />
               <Input
                 type="email"
-                placeholder="Masukkan email"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading || googleLoading}
@@ -101,7 +114,7 @@ export default function LoginPage() {
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D6A4F]" />
               <Input
                 type={showPassword ? "text" : "password"}
-                placeholder="Masukkan password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading || googleLoading}
@@ -120,36 +133,29 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* REMEMBER ME */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={rememberMe}
-                  onCheckedChange={(checked) =>
-                    setRememberMe(checked === true)
-                  }
-                  className="h-4 w-4 border-2 border-gray-400 bg-white
-                    data-[state=checked]:bg-[#2D6A4F]
-                    data-[state=checked]:border-[#2D6A4F]"
-                />
-                <span className="text-sm">Ingat saya</span>
-              </label>
-
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary hover:underline"
-              >
-                Lupa Password?
-              </Link>
+            {/* AGREEMENT */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={agree}
+                onCheckedChange={(checked) =>
+                  setAgree(checked === true)
+                }
+                className="h-4 w-4 border-2 border-gray-400 bg-white
+                  data-[state=checked]:bg-[#2D6A4F]
+                  data-[state=checked]:border-[#2D6A4F]"
+              />
+              <span className="text-sm">
+                Saya menyetujui syarat & ketentuan
+              </span>
             </div>
 
-            {/* BUTTON MASUK (TANPA LOADING TEXT) */}
+            {/* BUTTON DAFTAR (TANPA LOADING TEXT) */}
             <Button
               type="submit"
-              disabled={isLoading || googleLoading}
+              disabled={isLoading || googleLoading || !agree}
               className="w-full bg-[#2D6A4F] text-white py-4 mt-4"
             >
-              Masuk
+              Daftar
             </Button>
           </form>
 
@@ -160,9 +166,9 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gray-300" />
           </div>
 
-          {/* GOOGLE LOGIN */}
+          {/* GOOGLE REGISTER */}
           <button
-            onClick={handleGoogleLogin}
+            onClick={handleGoogleRegister}
             disabled={googleLoading || isLoading}
             className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded-xl hover:bg-gray-50"
           >
@@ -172,7 +178,7 @@ export default function LoginPage() {
               className="w-5 h-5"
             />
             <span className="font-medium text-[#2D6A4F]">
-              Masuk dengan Google
+              Daftar dengan Google
             </span>
           </button>
         </div>
