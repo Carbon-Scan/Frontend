@@ -1,12 +1,18 @@
 "use client"
 
-import type React from "react"
 import { useRef, useState } from "react"
-import { Upload, Cloud, FileText, Image as ImageIcon } from "lucide-react"
+import {
+  Upload,
+  Cloud,
+  FileText,
+  Image as ImageIcon,
+  Calculator,
+} from "lucide-react"
 
 import TopBar from "@/components/top-bar"
 import Card from "@/components/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -15,131 +21,210 @@ const ALLOWED_TYPES = [
   "image/png",
 ]
 
+type DetectedProduct = {
+  produk: string
+  karbon_kg_per_kg: number
+  kategori: string
+  confidence: number
+  berat_kg?: number
+}
+
 export default function UploadPage() {
-  const [isDragOver, setIsDragOver] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const [result, setResult] = useState<{
+    raw_text: string
+    detected_products: DetectedProduct[]
+  } | null>(null)
+
+  const [calculationResult, setCalculationResult] = useState<{
+    detail: {
+      produk: string
+      berat_kg: number
+      karbon: number
+    }[]
+    total_karbon: number
+  } | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  /* ================= HANDLERS ================= */
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragOver(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-
-    const droppedFile = e.dataTransfer.files[0]
-    validateAndSetFile(droppedFile)
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    validateAndSetFile(selectedFile)
-  }
 
   const validateAndSetFile = (selectedFile?: File) => {
     if (!selectedFile) return
 
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
-      alert("Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.")
+      alert("Format file tidak didukung")
       return
     }
 
     if (selectedFile.size > 10 * 1024 * 1024) {
-      alert("Ukuran file maksimal 10MB.")
+      alert("Ukuran file maksimal 10MB")
       return
     }
 
     setFile(selectedFile)
+    setResult(null)
+    setCalculationResult(null)
   }
 
-  const openFilePicker = () => {
-    fileInputRef.current?.click()
+  const uploadToBackend = async () => {
+    if (!file) return
+
+    setLoading(true)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/predict-carbon", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      setResult(data)
+    } catch {
+      alert("Backend AI tidak bisa diakses")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  /* ================= UI ================= */
+  const handleCalculateCarbon = async () => {
+    if (!result) return
+
+    const items = result.detected_products
+      .filter((p) => p.berat_kg && p.berat_kg > 0)
+      .map((p) => ({
+        produk: p.produk,
+        berat_kg: p.berat_kg!,
+      }))
+
+    if (items.length === 0) {
+      alert("Masukkan berat produk terlebih dahulu")
+      return
+    }
+
+    const res = await fetch("http://127.0.0.1:8000/calculate-carbon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    })
+
+    const data = await res.json()
+    setCalculationResult(data)
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* TOP BAR */}
       <TopBar />
 
-      {/* CONTENT */}
-      <main className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-2xl mx-auto">
-          {/* JUDUL */}
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            Unggah Struk Belanja Bahan Makanan
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Unggah foto atau PDF struk belanja untuk menghitung estimasi emisi karbon bahan makanan
-          </p>
+      <main className="flex-1 p-4">
+        <div className="max-w-2xl mx-auto space-y-6">
 
-          {/* UPLOAD CARD */}
-          <Card className="bg-card rounded-3xl shadow-md p-8 border-2 border-dashed border-border mb-6">
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={openFilePicker}
-              className={`text-center py-12 cursor-pointer transition-all rounded-2xl ${
-                isDragOver ? "bg-secondary" : "hover:bg-secondary/50"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+          <Card className="p-6 border-dashed border-2 text-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => validateAndSetFile(e.target.files?.[0])}
+            />
 
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary/10 rounded-full">
-                  <Cloud className="w-8 h-8 text-primary" />
-                </div>
-              </div>
+            <Cloud className="mx-auto mb-3 text-primary" size={32} />
 
-              <p className="text-lg font-semibold text-foreground mb-2">
-                Klik atau seret struk ke sini
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                PDF, JPG, JPEG, PNG (maks. 10MB)
-              </p>
+            <p className="font-semibold mb-1">Unggah Struk Belanja</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              PDF atau gambar (maks. 10MB)
+            </p>
 
-              <Button
-                type="button"
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Pilih File
-              </Button>
-            </div>
+            <Button onClick={() => fileInputRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-2" />
+              Pilih File
+            </Button>
           </Card>
 
-          {/* FILE PREVIEW */}
           {file && (
-            <Card className="rounded-2xl p-4 border border-border/50">
-              <div className="flex items-center gap-3">
-                {file.type === "application/pdf" ? (
-                  <FileText className="w-6 h-6 text-red-500" />
-                ) : (
-                  <ImageIcon className="w-6 h-6 text-green-600" />
-                )}
+            <Card className="p-4 flex items-center gap-3">
+              {file.type === "application/pdf" ? (
+                <FileText className="text-red-500" />
+              ) : (
+                <ImageIcon className="text-green-600" />
+              )}
 
-                <div className="flex-1">
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+              <div className="flex-1">
+                <p className="font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+
+              <Button onClick={uploadToBackend} disabled={loading}>
+                {loading ? "Memproses..." : "Proses Struk"}
+              </Button>
+            </Card>
+          )}
+
+          {result && (
+            <Card className="p-5 space-y-3">
+              <h3 className="font-bold">Produk Terdeteksi</h3>
+
+              {result.detected_products.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 border-b py-2"
+                >
+                  <span className="flex-1 font-medium">{p.produk}</span>
+
+                  <div className="w-28">
+                    <label className="text-xs text-muted-foreground">
+                      Berat (kg)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      placeholder="0.0"
+                      onChange={(e) => {
+                        const updated = [...result.detected_products]
+                        updated[i].berat_kg = Number(e.target.value)
+                        setResult({
+                          ...result,
+                          detected_products: updated,
+                        })
+                      }}
+                    />
+                  </div>
                 </div>
+              ))}
+
+              <Button className="w-full mt-3" onClick={handleCalculateCarbon}>
+                <Calculator className="w-4 h-4 mr-2" />
+                Hitung Emisi Karbon
+              </Button>
+            </Card>
+          )}
+
+          {calculationResult && (
+            <Card className="p-5">
+              <h3 className="font-bold mb-3">Hasil Emisi Karbon</h3>
+
+              {calculationResult.detail.map((d, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between py-1 text-sm"
+                >
+                  <span>
+                    {d.produk} ({d.berat_kg} kg)
+                  </span>
+                  <span>{d.karbon} CO₂e</span>  
+                </div>
+              ))}
+
+              <div className="border-t mt-3 pt-3 flex justify-between font-bold">
+                <span>Total Emisi</span>
+                <span>{calculationResult.total_karbon} CO₂e</span>
               </div>
             </Card>
           )}
