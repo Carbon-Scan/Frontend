@@ -2,180 +2,95 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 
 export default function LoginPage() {
   const router = useRouter()
 
-  const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // sementara dummy login
-    setTimeout(() => {
-      router.push("/dashboard")
-      setIsLoading(false)
-    }, 1000)
-  }
-
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true)
-
     try {
-      const result = await signIn("google", {
-        callbackUrl: "/dashboard",
-        redirect: false,
+      const res = await fetch("http://127.0.0.1:8000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
       })
 
-      if (result?.error) {
-        alert("Login dengan Google gagal. Coba lagi.")
-        setGoogleLoading(false)
-      } else if (result?.url) {
-        router.push(result.url)
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Login gagal")
       }
-    } catch {
-      alert("Terjadi kesalahan. Coba lagi.")
-      setGoogleLoading(false)
+
+      const data = await res.json()
+
+      // ✅ SIMPAN DATA LOGIN
+      localStorage.setItem("access_token", data.access_token)
+      localStorage.setItem("user_id", data.user_id.toString())
+
+      router.push("/dashboard")
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#DFF5E3] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md bg-white rounded-4xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
 
-        {/* LOGO */}
-        <div className="text-center mb-8">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="w-20 h-20 mx-auto mb-4"
+        <form onSubmit={handleLogin} className="space-y-4">
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
-        </div>
 
-        {/* CARD */}
-        <div className="bg-white rounded-[32px] shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-center mb-2">
-            Login
-          </h2>
-
-          <p className="text-muted-foreground text-center mb-6">
-            Belum punya akun?{" "}
-            <Link
-              href="/register"
-              className="text-primary font-semibold hover:underline"
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
             >
-              Daftar
-            </Link>
-          </p>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-
-            {/* EMAIL */}
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D6A4F]" />
-              <Input
-                type="email"
-                placeholder="Masukkan email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading || googleLoading}
-                className="pl-12 border-2 border-[#2D6A4F]/40 focus:border-[#2D6A4F] focus:ring-0"
-              />
-            </div>
-
-            {/* PASSWORD */}
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2D6A4F]" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading || googleLoading}
-                className="pl-12 pr-12 border-2 border-[#2D6A4F]/40 focus:border-[#2D6A4F] focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5 text-[#2D6A4F]" />
-                ) : (
-                  <Eye className="w-5 h-5 text-[#2D6A4F]" />
-                )}
-              </button>
-            </div>
-
-            {/* REMEMBER ME */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={rememberMe}
-                  onCheckedChange={(checked) =>
-                    setRememberMe(checked === true)
-                  }
-                  className="h-4 w-4 border-2 border-gray-400 bg-white
-                    data-[state=checked]:bg-[#2D6A4F]
-                    data-[state=checked]:border-[#2D6A4F]"
-                />
-                <span className="text-sm">Ingat saya</span>
-              </label>
-
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary hover:underline"
-              >
-                Lupa Password?
-              </Link>
-            </div>
-
-            {/* BUTTON MASUK (TANPA LOADING TEXT) */}
-            <Button
-              type="submit"
-              disabled={isLoading || googleLoading}
-              className="w-full bg-[#2D6A4F] text-white py-4 mt-4"
-            >
-              Masuk
-            </Button>
-          </form>
-
-          {/* DIVIDER */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-gray-300" />
-            <span className="text-sm text-muted-foreground">Atau</span>
-            <div className="flex-1 h-px bg-gray-300" />
+              {showPassword ? <EyeOff /> : <Eye />}
+            </button>
           </div>
 
-          {/* GOOGLE LOGIN */}
-          <button
-            onClick={handleGoogleLogin}
-            disabled={googleLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded-xl hover:bg-gray-50"
-          >
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png"
-              alt="Google"
-              className="w-5 h-5"
-            />
-            <span className="font-medium text-[#2D6A4F]">
-              Masuk dengan Google
-            </span>
-          </button>
-        </div>
+          <Button type="submit" disabled={isLoading} className="w-full">
+            Login
+          </Button>
+        </form>
+
+        <p className="text-center text-sm mt-4">
+          Belum punya akun?{" "}
+          <Link href="/register" className="text-primary underline">
+            Daftar
+          </Link>
+        </p>
       </div>
     </div>
   )

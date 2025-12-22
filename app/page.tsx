@@ -60,7 +60,7 @@ export default function LandingPage() {
             </div>
 
             {/* IMAGE CIRCLES */}
-            <div className="relative w-[460px] h-[380px] mx-auto">
+            <div className="relative w-115 h-96 mx-auto">
               <div className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full overflow-hidden">
                 <Image src="/sayur.jpeg" alt="Sayur" fill className="object-cover" />
               </div>

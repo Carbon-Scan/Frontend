@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Download } from "lucide-react"
 import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 import TopBar from "@/components/top-bar"
 import Card from "@/components/card"
@@ -11,58 +12,107 @@ import { Button } from "@/components/ui/button"
 export default function HistoryPage() {
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const downloadPDF = () => {
-    setIsDownloading(true)
+  const downloadPDF = async () => {
+  setIsDownloading(true)
 
-    const doc = new jsPDF()
+  try {
+    // ambil riwayat terakhir (hardcode user_id = 1 dulu)
+    const listRes = await fetch("http://127.0.0.1:8000/riwayat/1")
+    const riwayat = await listRes.json()
 
-    // Header
-    doc.setFontSize(20)
-    doc.setTextColor(0, 102, 51)
-    doc.text("LAPORAN EMISI", 105, 30, { align: "center" })
+    if (!Array.isArray(riwayat) || riwayat.length === 0) {
+      alert("Belum ada riwayat")
+      return
+    }
 
-    doc.setLineWidth(0.5)
-    doc.line(20, 35, 190, 35)
+    const lastStrukId = riwayat[0].struk_id
 
-    doc.setFontSize(12)
-    doc.setTextColor(0, 0, 0)
-    doc.text(
-      "Tanggal: " + new Date().toLocaleDateString("id-ID"),
-      20,
-      50
+    // ambil detail
+    const detailRes = await fetch(
+      `http://127.0.0.1:8000/riwayat/detail/${lastStrukId}`
     )
-    doc.text(
-      "Waktu: " + new Date().toLocaleTimeString("id-ID"),
-      20,
-      60
-    )
+    const data = await detailRes.json()
 
-    doc.setFontSize(14)
-    doc.text("Data dari halaman Upload", 105, 80, {
-      align: "center",
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
     })
 
-    doc.save("riwayat-emisi.pdf")
+    // ================= HEADER =================
+    doc.setFontSize(16)
+    doc.text("LAPORAN EMISI KARBON", 105, 20, { align: "center" })
 
-    setTimeout(() => {
-      setIsDownloading(false)
-    }, 800)
+    doc.setFontSize(10)
+    doc.text(`Struk ID: ${data.struk_id}`, 14, 30)
+    doc.text(
+      `Tanggal: ${new Date().toLocaleDateString("id-ID")}`,
+      14,
+      36
+    )
+
+    // ================= TABLE =================
+    const tableBody = data.produk
+      .filter((p: any) => p.berat_kg > 0)
+      .map((p: any) => [
+        p.nama,
+        `${p.berat_kg} kg`,
+        `${p.karbon} kg CO₂e`,
+      ])
+
+    autoTable(doc, {
+      startY: 45,
+      head: [["Produk", "Berat", "Emisi"]],
+      body: tableBody,
+      theme: "grid",
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      headStyles: {
+        fillColor: [0, 102, 51],
+        textColor: 255,
+        halign: "center",
+      },
+      columnStyles: {
+        1: { halign: "center" },
+        2: { halign: "right" },
+      },
+    })
+
+    // ================= TOTAL =================
+    const finalY = (doc as any).lastAutoTable.finalY + 8
+
+    doc.setFontSize(12)
+    doc.text(
+      `TOTAL EMISI: ${data.total_emisi} kg CO₂e`,
+      14,
+      finalY
+    )
+
+    doc.save("laporan-emisi.pdf")
+  } catch (err) {
+    console.error(err)
+    alert("Gagal membuat PDF")
+  } finally {
+    setIsDownloading(false)
   }
+}
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* TOP BAR */}
       <TopBar />
 
-      {/* CONTENT */}
       <main className="flex-1 p-4">
         <Card className="max-w-sm mx-auto mt-8">
           <div className="p-6 text-center">
             <h2 className="text-lg font-semibold mb-4">
               Download Riwayat
             </h2>
+
             <p className="text-sm text-gray-500 mb-6">
-              PDF berisi data emisi dari hasil upload
+              PDF berisi hasil emisi karbon terakhir
             </p>
 
             <Button
