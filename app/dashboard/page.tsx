@@ -26,7 +26,6 @@ export default function DashboardPage() {
   const [monthlyEmissionData, setMonthlyEmissionData] = useState<any[]>([])
   const [categoryEmissionData, setCategoryEmissionData] = useState<any[]>([])
 
-  // ✅ AMBIL USER DARI LOGIN
   useEffect(() => {
     const id = localStorage.getItem("user_id")
     if (!id) {
@@ -36,7 +35,6 @@ export default function DashboardPage() {
     setUserId(id)
   }, [])
 
-  // ✅ FETCH DATA SESUAI USER
   useEffect(() => {
     if (!userId) return
 
