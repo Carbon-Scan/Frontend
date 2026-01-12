@@ -7,27 +7,36 @@ export default function AuthCallbackPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Ambil token dari URL hash
-    const hash = window.location.hash.substring(1)
-    const params = new URLSearchParams(hash)
+    const handleCallback = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get("code")
 
-    const accessToken = params.get("access_token")
+      if (!code) {
+        router.replace("/login")
+        return
+      }
 
-    if (!accessToken) {
-      router.replace("/login")
-      return
+      try {
+        const res = await fetch(
+          `https://carbonscan-api.vercel.app/auth/callback?code=${code}`
+        )
+
+        const data = await res.json()
+
+        if (!res.ok || !data.access_token) {
+          throw new Error("Google login failed")
+        }
+
+        localStorage.setItem("access_token", data.access_token)
+        router.replace("/dashboard")
+      } catch (err) {
+        console.error(err)
+        router.replace("/login")
+      }
     }
 
-    // 🔥 SIMPAN TOKEN
-    localStorage.setItem("access_token", accessToken)
-
-    // 🔁 Redirect ke dashboard
-    router.replace("/dashboard")
+    handleCallback()
   }, [router])
 
-  return (
-    <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
-      Menghubungkan akun Google...
-    </div>
-  )
+  return <p>Login Google diproses...</p>
 }

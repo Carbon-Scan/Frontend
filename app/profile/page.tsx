@@ -23,7 +23,7 @@ export default function ProfilePage() {
       return
     }
 
-    fetch("http://localhost:4000/api/profile", {
+    fetch("https://carbonscan-api.vercel.app/api/profile", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

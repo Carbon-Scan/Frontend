@@ -20,7 +20,7 @@ export default function RegisterPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:4000/api/auth/register",
+        "https://carbonscan-api.vercel.app/api/auth/register",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49,7 +49,7 @@ export default function RegisterPage() {
 
     // 🔑 REGISTER GOOGLE = LOGIN GOOGLE
     window.location.href =
-      "http://localhost:4000/api/auth/login/google"
+      "https://carbonscan-api.vercel.app/api/auth/login/google"
   }
 
   return (

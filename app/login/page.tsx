@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch("http://localhost:4000/api/auth/login", {
+      const res = await fetch("https://carbonscan-api.vercel.app/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
     // ✅ GOOGLE LOGIN LEWAT BACKEND
     window.location.href =
-      "http://localhost:4000/api/auth/login/google"
+      "https://carbonscan-api.vercel.app/api/auth/login/google"
   }
 
   return (

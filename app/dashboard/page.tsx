@@ -14,10 +14,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from "recharts"
-
-import TopBar from "@/components/top-bar"
-import Card from "@/components/card"
 
 const COLORS = [
   "#EF4444",
@@ -27,6 +26,24 @@ const COLORS = [
   "#8B5CF6",
   "#EC4899",
 ]
+
+// Komponen Card sederhana
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white border border-gray-200 ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+// Import TopBar dari komponen yang sudah ada
+// Jika ada error, ganti dengan: function TopBar() { return <div>TopBar</div> }
+let TopBar: any
+try {
+  TopBar = require("@/components/top-bar").default
+} catch {
+  TopBar = () => <div className="p-4 bg-white border-b">TopBar Component</div>
+}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -63,7 +80,7 @@ export default function DashboardPage() {
 
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/dashboard", {
+        const res = await fetch("https://carbonscan-api.vercel.app/api/dashboard", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -91,86 +108,219 @@ export default function DashboardPage() {
   // =====================
   // LOADING GUARD
   // =====================
-  if (!mounted || loading) return null
+  if (!mounted || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#254B37] border-t-transparent animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600 font-medium">Memuat data dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Hitung statistik tambahan
+  const avgEmisi = monthlyEmissionData.length > 0 
+    ? monthlyEmissionData.reduce((sum, item) => sum + item.emisi, 0) / monthlyEmissionData.length 
+    : 0
+  
+  const maxEmisi = monthlyEmissionData.length > 0
+    ? Math.max(...monthlyEmissionData.map(item => item.emisi))
+    : 0
+
+  const totalKategori = categoryEmissionData.length
 
   // =====================
   // UI
   // =====================
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <TopBar />
 
-      <main className="flex-1 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
 
-          {/* TOTAL EMISI */}
-          <Card className="rounded-3xl p-6">
-            <h3 className="text-sm mb-2 text-gray-500">
-              Total Emisi
-            </h3>
-            <div className="text-4xl font-bold text-emerald-700">
-              {totalEmisi.toLocaleString("id-ID", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              kg CO₂e
+          {/* STATS GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Total Emisi */}
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                Total Emisi
+              </h3>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {totalEmisi.toLocaleString("id-ID", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </div>
+              <p className="text-xs text-gray-600">kg CO₂e</p>
+            </Card>
+
+            {/* Rata-rata Bulanan */}
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                Rata-rata Bulanan
+              </h3>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {avgEmisi.toLocaleString("id-ID", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </div>
+              <p className="text-xs text-gray-600">kg CO₂e</p>
+            </Card>
+
+            {/* Emisi Tertinggi */}
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                Emisi Tertinggi
+              </h3>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {maxEmisi.toLocaleString("id-ID", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </div>
+              <p className="text-xs text-gray-600">kg CO₂e</p>
+            </Card>
+
+            {/* Total Kategori */}
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                Kategori Aktif
+              </h3>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {totalKategori}
+              </div>
+              <p className="text-xs text-gray-600">kategori</p>
+            </Card>
+
+          </div>
+
+          {/* CHARTS */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            
+            {/* LINE CHART - Span 2 columns */}
+            <Card className="lg:col-span-2 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Tren Emisi Bulanan</h3>
+                  <p className="text-xs text-gray-500 mt-1">Perbandingan emisi dari bulan ke bulan</p>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={monthlyEmissionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 11, fill: '#6b7280' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11, fill: '#6b7280' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: 0,
+                      fontSize: 12
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="emisi"
+                    stroke="#254B37"
+                    strokeWidth={3}
+                    dot={{ fill: '#254B37', r: 5 }}
+                    activeDot={{ r: 7, fill: '#1d3a2a' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* PIE CHART */}
+            <Card className="p-6 shadow-sm">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900">Distribusi Kategori</h3>
+                <p className="text-xs text-gray-500 mt-1">Komposisi emisi per kategori</p>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={categoryEmissionData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    minAngle={3}
+                    paddingAngle={2}
+                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
+                  >
+                    {categoryEmissionData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={COLORS[i % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number) => `${v.toFixed(2)} kg CO₂e`}
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: 0,
+                      fontSize: 12
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+
+          </div>
+
+          {/* BAR CHART - Category Breakdown */}
+          <Card className="p-6 shadow-sm">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Perbandingan Kategori</h3>
+              <p className="text-xs text-gray-500 mt-1">Visualisasi emisi per kategori dalam bentuk bar</p>
             </div>
-          </Card>
-
-          {/* LINE CHART */}
-          <Card className="rounded-3xl p-6">
-            <h3 className="text-lg mb-4 font-semibold">
-              Tren Emisi Bulanan
-            </h3>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyEmissionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+              <BarChart data={categoryEmissionData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickLine={false}
+                />
                 <Tooltip
-                  formatter={(v: number) =>
-                    `${v.toFixed(2)} kg CO₂e`
-                  }
+                  formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 0,
+                    fontSize: 12
+                  }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="emisi"
-                  stroke="#1A6B41"
-                  strokeWidth={3}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* PIE CHART */}
-          <Card className="rounded-3xl p-6">
-            <h3 className="text-lg mb-4 font-semibold">
-              Emisi per Kategori
-            </h3>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Legend />
-                <Pie
-                  data={categoryEmissionData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={110}
-                  minAngle={3}
-                  paddingAngle={1}
-                >
+                <Bar dataKey="value" radius={[0, 0, 0, 0]}>
                   {categoryEmissionData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={COLORS[i % COLORS.length]}
-                    />
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v: number) =>
-                    `${v.toFixed(2)} kg CO₂e`
-                  }
-                />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </Card>
 
