@@ -112,13 +112,12 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#254B37] border-t-transparent animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600 font-medium">Memuat data dashboard...</p>
+          <div className="w-12 h-12 border-4 border-[#254B37] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-gray-600">Memuat dashboard...</p>
         </div>
       </div>
     )
   }
-
   // Hitung statistik tambahan
   const avgEmisi = monthlyEmissionData.length > 0 
     ? monthlyEmissionData.reduce((sum, item) => sum + item.emisi, 0) / monthlyEmissionData.length 
@@ -134,7 +133,7 @@ export default function DashboardPage() {
   // UI
   // =====================
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#E9F8EF] flex flex-col">
       <TopBar />
 
       <main className="flex-1 p-4 md:p-6 lg:p-8">
@@ -261,8 +260,6 @@ export default function DashboardPage() {
                     outerRadius={90}
                     minAngle={3}
                     paddingAngle={2}
-                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                    labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
                   >
                     {categoryEmissionData.map((_, i) => (
                       <Cell
@@ -285,44 +282,6 @@ export default function DashboardPage() {
             </Card>
 
           </div>
-
-          {/* BAR CHART - Category Breakdown */}
-          <Card className="p-6 shadow-sm">
-            <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Perbandingan Kategori</h3>
-              <p className="text-xs text-gray-500 mt-1">Visualisasi emisi per kategori dalam bentuk bar</p>
-            </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={categoryEmissionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 11, fill: '#6b7280' }}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11, fill: '#6b7280' }}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                  tickLine={false}
-                />
-                <Tooltip
-                  formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 0,
-                    fontSize: 12
-                  }}
-                />
-                <Bar dataKey="value" radius={[0, 0, 0, 0]}>
-                  {categoryEmissionData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
 
         </div>
       </main>

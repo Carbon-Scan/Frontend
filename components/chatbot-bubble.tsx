@@ -1,137 +1,118 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import Image from "next/image"
-import { MessageCircle, X, Send } from "lucide-react"
+import { X, Send } from "lucide-react"
+
+const API_BASE =
+  "https://delia-ayu-nandhita-chatbot-sentimen.hf.space"
 
 type Message = {
   id: string
   text: string
   sender: "user" | "bot"
-  timestamp: Date
 }
 
 export default function ChatBotBubble() {
   const [isOpen, setIsOpen] = useState(false)
-  const [showTooltip, setShowTooltip] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Tooltip auto muncul
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowTooltip(true)
-    }, 2000)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  const handleSend = async () => {
+  const sendMessage = async () => {
     if (!input.trim()) return
 
-    const userMessage: Message = {
+    const userMsg: Message = {
       id: Date.now().toString(),
       text: input,
       sender: "user",
-      timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
-    const userInput = input
+    setMessages((prev) => [...prev, userMsg])
     setInput("")
-    setIsTyping(true)
+    setLoading(true)
 
     try {
-      const response = await fetch("YOUR_API_ENDPOINT_HERE", {
+      const res = await fetch(`${API_BASE}/chat/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userInput }),
+        body: JSON.stringify({ question: userMsg.text }),
       })
 
-      const data = await response.json()
+      const data = await res.json()
 
-      const botMessage: Message = {
+      const botMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response || data.message || "Maaf, terjadi kesalahan.",
+        text: data.answer ?? "Maaf, saya belum bisa menjawab.",
         sender: "bot",
-        timestamp: new Date(),
       }
 
-      setMessages((prev) => [...prev, botMessage])
+      setMessages((prev) => [...prev, botMsg])
     } catch {
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: "Maaf, terjadi kesalahan. Silakan coba lagi.",
+          text: "Gagal menghubungi server.",
           sender: "bot",
-          timestamp: new Date(),
         },
       ])
     } finally {
-      setIsTyping(false)
+      setLoading(false)
     }
   }
 
   return (
     <>
-      {/* CHAT WINDOW */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 w-90 bg-white shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden">
-          <div className="p-4 bg-emerald-600 text-white font-semibold flex justify-between">
-            Asisten CarbonScan
+        <div className="fixed bottom-24 right-4 w-90 h-125 bg-white border shadow-xl rounded-xl flex flex-col z-50">
+          <div className="p-3 bg-emerald-600 text-white flex justify-between rounded-t-xl">
+            CarbonScan Bot
             <button onClick={() => setIsOpen(false)}>
-              <X />
+              <X size={18} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-3 min-h-100">
+          <div className="flex-1 p-3 overflow-y-auto space-y-2 bg-gray-50">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  msg.sender === "user"
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
               >
                 <div
-                  className={`px-4 py-2 max-w-[80%] ${
+                  className={`px-3 py-2 rounded-lg text-sm max-w-[75%] ${
                     msg.sender === "user"
                       ? "bg-emerald-600 text-white"
                       : "bg-white border"
                   }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  {msg.text}
                 </div>
               </div>
             ))}
 
-            {isTyping && (
-              <div className="text-gray-400 text-sm">Bot sedang mengetik...</div>
+            {loading && (
+              <p className="text-xs text-gray-400">
+                CarbonScan sedang mengetik…
+              </p>
             )}
-
-            <div ref={messagesEndRef} />
           </div>
 
           <div className="p-3 border-t flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ketik pesan..."
-              className="flex-1 border px-3 py-2 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              placeholder="Tanya tentang karbon…"
+              className="flex-1 border rounded px-3 py-2 text-sm"
             />
             <button
-              onClick={handleSend}
-              className="bg-emerald-600 text-white px-3 py-2"
+              onClick={sendMessage}
+              className="bg-emerald-600 text-white px-3 py-2 rounded"
             >
               <Send size={16} />
             </button>
@@ -139,38 +120,34 @@ export default function ChatBotBubble() {
         </div>
       )}
 
-      {/* TOOLTIP */}
-      {showTooltip && !isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 animate-tooltip">
-          <div className="bg-emerald-600 text-white text-sm px-4 py-2 shadow-lg relative">
-            Butuh bantuan?
-            <span className="absolute -bottom-1.5 right-6 w-3 h-3 bg-emerald-600 rotate-45"></span>
-          </div>
-        </div>
-      )}
+      {/* CHATBOT BUBBLE */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="fixed bottom-6 right-6 z-50"
+          style={{
+            animation: "wiggle 1.8s ease-in-out infinite",
+          }}
+        >
+          <Image
+            src="/chatbot.png"
+            alt="Chatbot"
+            width={56}
+            height={56}
+            className="rounded-full cursor-pointer"
+          />
+        </button>
 
-      {/* CHAT BUBBLE */}
-      <button
-        onClick={() => {
-          setIsOpen(!isOpen)
-          setShowTooltip(false)
-        }}
-        className="
-          fixed bottom-6 right-4 sm:right-6
-          w-16 h-16 rounded-full bg-white
-          shadow-[0_0_20px_rgba(16,185,129,0.6)]
-          flex items-center justify-center
-          z-50 animate-float
-        "
-      >
-        <Image
-          src="https://img.freepik.com/premium-vector/chatbot-icon-concept-chat-bot-chatterbot-robot-virtual-assistance-website_123447-1615.jpg?w=1380"
-          alt="Chatbot"
-          width={56}
-          height={56}
-          className="rounded-full"
-        />
-      </button>
+        {/* INLINE KEYFRAMES */}
+        <style jsx>{`
+          @keyframes wiggle {
+            0%, 100% {
+              transform: rotate(-6deg);
+            }
+            50% {
+              transform: rotate(6deg);
+            }
+          }
+        `}</style>
     </>
   )
 }

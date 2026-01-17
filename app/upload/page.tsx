@@ -241,17 +241,12 @@ export default function UploadPage() {
     return map
   }, [result])
 
-  const emissionLevel = useMemo(() => {
-    if (!result) return "Rendah"
-    if (result.total_karbon > 70) return "Tinggi"
-    if (result.total_karbon > 40) return "Sedang"
-    return "Rendah"
-  }, [result])
+  
 
-  const OFFSET_PRICE = 1200
+  const OFFSET_PRICE = 30
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#E9F8EF] flex flex-col">
       <TopBar />
 
       <main className="flex-1 p-6">
@@ -299,8 +294,8 @@ export default function UploadPage() {
               <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <FileCheck className="w-6 h-6 text-green-600" />
+                    <div className="w-12 h-12 bg-[#1d3a2a] rounded-lg flex items-center justify-center">
+                      <FileCheck className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{file.name}</p>
@@ -364,6 +359,8 @@ export default function UploadPage() {
                         >
                           <SelectItem value="kg">kg</SelectItem>
                           <SelectItem value="gram">gram</SelectItem>
+                          <SelectItem value="liter">liter</SelectItem>
+                          <SelectItem value="ml">ml</SelectItem>
                           <SelectItem value="pcs">pcs</SelectItem>
                         </Select>
                       </div>
@@ -439,35 +436,58 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              {/* Emission Level */}
-              <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-xl">🌱</span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-green-700 mb-1">Kategori Emisi</p>
-                    <p className="text-lg font-bold text-green-900">{emissionLevel}</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Carbon Offset */}
               <div className="border border-gray-200 rounded-xl p-5">
-                <h4 className="font-bold text-gray-900 mb-3">Estimasi Biaya Carbon Offset</h4>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-3xl font-bold text-gray-900">
-                    Rp {(result.total_karbon * OFFSET_PRICE).toLocaleString("id-ID")}
-                  </span>
+                <h4 className="font-bold text-gray-900 mb-4">
+                  Estimasi Biaya Carbon Offset
+                </h4>
+
+              {/* DETAIL */}
+              <div className="space-y-2 text-sm text-gray-700">
+                <div className="flex justify-between">
+                  <span>Total Emisi</span>
+                  <span>{result.total_karbon.toFixed(2)} kg CO₂e</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>🌳</span>
-                  <span>Platform: <strong>Lindungi Hutan</strong></span>
-                </div>
+
+              <div className="flex justify-between">
+                <span>Harga per kg CO₂e</span>
+                <span>Rp {OFFSET_PRICE.toLocaleString("id-ID")}</span>
               </div>
+            </div>
+
+            {/* DIVIDER */}
+            <div className="my-4 border-t border-gray-200"></div>
+
+            {/* TOTAL */}
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-900">
+                Total Biaya Offset
+              </span>
+              <span className="text-xl font-bold text-gray-900">
+                Rp {Math.round(result.total_karbon * OFFSET_PRICE).toLocaleString("id-ID")}
+              </span>
+
+            </div>
+
+            {/* PLATFORM */}
+            <div className="mt-3 text-xs text-gray-600">
+            Jika Anda ingin melakukan carbon offset secara mandiri, Anda dapat
+            melakukannya melalui platform{" "}
+            <a
+              href="https://lindungihutan.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-emerald-700 hover:underline"
+            >
+              Lindungi Hutan
+            </a>.
+            </div>
+
+          </div>
 
             </Card>
-          )}
+            )}
 
         </div>
       </main>

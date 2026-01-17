@@ -149,7 +149,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#E9F8EF] flex flex-col">
       <TopBar />
 
       <main className="flex-1 p-4 md:p-6 lg:p-8">

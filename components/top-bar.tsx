@@ -61,9 +61,11 @@ export default function TopBar() {
     router.refresh()
   }
 
-  const initial = profile
-    ? (profile.name || profile.email).charAt(0).toUpperCase()
-    : "?"
+  const initial =
+  profile?.name?.trim()?.charAt(0)?.toUpperCase() ||
+  profile?.email?.charAt(0)?.toUpperCase() ||
+  "?"
+
 
   return (
     <header className="w-full bg-white border-b sticky top-0 z-50 shadow-sm">
@@ -114,7 +116,7 @@ export default function TopBar() {
 
           {open && profile && (
             <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border z-50 overflow-hidden">
-              <div className="px-4 py-3 bg-emerald-50">
+              <div className="px-4 py-3 bg-white">
                 <p className="font-semibold text-sm text-gray-800">
                   {profile.name || "Pengguna"}
                 </p>
