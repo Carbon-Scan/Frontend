@@ -12,11 +12,14 @@ type Profile = {
   name: string
 }
 
-// GANTI dengan BASE URL BACKEND kamu
+// ================= CONFIG =================
 const API_BASE = "https://carbonscan-api.vercel.app/api"
+const HF_SENTIMENT_API =
+  "https://delia-ayu-nandhita-chatbot-sentimen.hf.space/sentiment/"
 
 export default function ProfilePage() {
   const router = useRouter()
+
   const [profile, setProfile] = useState<Profile | null>(null)
 
   // ULASAN STATE
@@ -24,6 +27,7 @@ export default function ProfilePage() {
   const [review, setReview] = useState("")
   const [loading, setLoading] = useState(false)
 
+  // ================= LOAD PROFILE =================
   useEffect(() => {
     const token = localStorage.getItem("access_token")
     if (!token) {
@@ -36,7 +40,10 @@ export default function ProfilePage() {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Unauthorized")
+        return res.json()
+      })
       .then(setProfile)
       .catch(() => {
         localStorage.removeItem("access_token")
@@ -46,12 +53,10 @@ export default function ProfilePage() {
 
   if (!profile) return null
 
-      const initial =
-  profile.name?.trim()?.charAt(0)?.toUpperCase() ||
-  profile.email?.charAt(0)?.toUpperCase() ||
-  "?"
-
-
+  const initial =
+    profile.name?.trim()?.charAt(0)?.toUpperCase() ||
+    profile.email?.charAt(0)?.toUpperCase() ||
+    "?"
 
   // ================= SUBMIT ULASAN =================
   const submitReview = async () => {
@@ -69,6 +74,31 @@ export default function ProfilePage() {
     setLoading(true)
 
     try {
+      // ===== 1. KIRIM KE HUGGING FACE =====
+      const hfRes = await fetch(HF_SENTIMENT_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: review,
+        }),
+      })
+
+      if (!hfRes.ok) {
+        throw new Error("Gagal memproses sentiment")
+      }
+
+      const hfJson = await hfRes.json()
+
+      const sentiment = hfJson?.sentiment?.label
+      const confidence = hfJson?.sentiment?.confidence
+
+      if (!sentiment || typeof confidence !== "number") {
+        throw new Error("Response sentiment tidak valid")
+      }
+
+      // ===== 2. KIRIM KE BACKEND =====
       const res = await fetch(`${API_BASE}/review`, {
         method: "POST",
         headers: {
@@ -77,28 +107,33 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           review_text: review,
+          sentiment,
+          confidence,
         }),
       })
 
-      if (!res.ok) throw new Error("Gagal kirim ulasan")
+      if (!res.ok) {
+        throw new Error("Gagal menyimpan ulasan")
+      }
 
       alert("Terima kasih atas ulasan Anda 🙏")
       setReview("")
       setShowReview(false)
-    } catch (err) {
+    } catch (error) {
+      console.error(error)
       alert("Terjadi kesalahan saat mengirim ulasan")
     } finally {
       setLoading(false)
     }
   }
 
+  // ================= UI =================
   return (
     <div className="min-h-screen bg-[#E9F8EF] flex flex-col">
       <TopBar />
 
       <main className="flex-1 flex items-center justify-center px-4">
         <Card className="w-full max-w-md rounded-3xl shadow-xl p-8 bg-white">
-
           {/* AVATAR */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-24 h-24 rounded-full bg-emerald-700 text-white flex items-center justify-center text-4xl font-bold shadow-lg">
@@ -107,9 +142,7 @@ export default function ProfilePage() {
             <h2 className="mt-4 text-xl font-semibold text-gray-800">
               {profile.name || "Pengguna"}
             </h2>
-            <p className="text-sm text-gray-500">
-              {profile.email}
-            </p>
+            <p className="text-sm text-gray-500">{profile.email}</p>
           </div>
 
           {/* INFO */}
@@ -178,7 +211,6 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
-
         </Card>
       </main>
     </div>
