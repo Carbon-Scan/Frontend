@@ -3,40 +3,26 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-export default function AuthCallbackPage() {
+export default function AuthCallback() {
   const router = useRouter()
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get("code")
+    // Ambil access_token dari URL (#access_token=...)
+    const hash = window.location.hash.substring(1)
+    const params = new URLSearchParams(hash)
+    const accessToken = params.get("access_token")
 
-      if (!code) {
-        router.replace("/login")
-        return
-      }
-
-      try {
-        const res = await fetch(
-          `https://carbonscan-api.vercel.app/auth/callback?code=${code}`
-        )
-
-        const data = await res.json()
-
-        if (!res.ok || !data.access_token) {
-          throw new Error("Google login failed")
-        }
-
-        localStorage.setItem("access_token", data.access_token)
-        router.replace("/dashboard")
-      } catch (err) {
-        console.error(err)
-        router.replace("/login")
-      }
+    if (!accessToken) {
+      router.replace("/login")
+      return
     }
 
-    handleCallback()
-  }, [router])
+    // SIMPAN TOKEN (backend kamu yang pakai)
+    localStorage.setItem("access_token", accessToken)
 
-  return <p>Login Google diproses...</p>
+    // Masuk dashboard
+    router.replace("/dashboard")
+  }, [])
+
+  return <p>Login Google berhasil...</p>
 }

@@ -44,12 +44,15 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    setGoogleLoading(true)
+  setGoogleLoading(true)
 
-    // ✅ GOOGLE LOGIN LEWAT BACKEND
-    window.location.href =
-      "https://carbonscan-api.vercel.app/api/auth/login/google"
-  }
+  // ✅ GOOGLE LOGIN VIA SUPABASE
+  window.location.href =
+    "https://pvdmqothkmghkbvclmto.supabase.co/auth/v1/authorize" +
+    "?provider=google" +
+    "&redirect_to=https://carbonscanemisi.vercel.app/auth/callback"
+}
+
 
   return (
     <div className="min-h-screen bg-[#E9F8EF] flex flex-col items-center justify-center px-4">
