@@ -15,6 +15,13 @@ type HistoryItem = {
 }
 
 export default function HistoryPage() {
+  useEffect(() => {
+    document.body.classList.add("page-loading")
+    return () => {
+      document.body.classList.remove("page-loading")
+    }
+  }, [])
+
   const router = useRouter()
   const [data, setData] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,6 +57,7 @@ export default function HistoryPage() {
         router.replace("/login")
       } finally {
         setLoading(false)
+        document.body.classList.remove("page-loading")
       }
     }
 
@@ -162,7 +170,7 @@ export default function HistoryPage() {
 
               {/* Summary Card */}
               {filteredData.length > 0 && (
-                <Card className="p-6 bg-linear-to-br from-[#254B37] to-[#1d3a2a] text-white">
+                <Card className="p-6 bg-gradient-to-br from-[#254B37] to-[#1d3a2a] text-white">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs opacity-90 mb-1">Total Perhitungan</p>

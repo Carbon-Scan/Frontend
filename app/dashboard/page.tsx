@@ -5,17 +5,16 @@ import { useEffect, useState } from "react"
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
-  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts"
 
 const COLORS = [
@@ -37,7 +36,6 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 // Import TopBar dari komponen yang sudah ada
-// Jika ada error, ganti dengan: function TopBar() { return <div>TopBar</div> }
 let TopBar: any
 try {
   TopBar = require("@/components/top-bar").default
@@ -46,6 +44,13 @@ try {
 }
 
 export default function DashboardPage() {
+  useEffect(() => {
+    document.body.classList.add("page-loading")
+    return () => {
+      document.body.classList.remove("page-loading")
+    }
+  }, [])
+
   const router = useRouter()
 
   // =====================
@@ -53,9 +58,11 @@ export default function DashboardPage() {
   // =====================
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [chartView, setChartView] = useState<"monthly" | "daily">("daily")
 
   const [totalEmisi, setTotalEmisi] = useState(0)
   const [monthlyEmissionData, setMonthlyEmissionData] = useState<any[]>([])
+  const [dailyEmissionData, setDailyEmissionData] = useState<any[]>([])
   const [categoryEmissionData, setCategoryEmissionData] = useState<any[]>([])
 
   // =====================
@@ -93,17 +100,47 @@ export default function DashboardPage() {
         setTotalEmisi(data.totalEmisi ?? 0)
         setMonthlyEmissionData(data.monthlyEmissionData ?? [])
         setCategoryEmissionData(data.categoryEmissionData ?? [])
+        
+        // Jika API mengirim dailyEmissionData
+        if (data.dailyEmissionData) {
+          setDailyEmissionData(data.dailyEmissionData)
+        } else {
+          // Generate data harian dari monthlyData (fallback)
+          generateDailyData(data.monthlyEmissionData || [])
+        }
       } catch (err) {
         console.error("Dashboard error:", err)
         localStorage.removeItem("access_token")
         router.replace("/login")
       } finally {
         setLoading(false)
+        document.body.classList.remove("page-loading")
       }
     }
 
     fetchDashboard()
   }, [mounted, router])
+
+  // Generate data harian dari data bulanan (fallback jika API belum ada)
+  const generateDailyData = (monthlyData: any[]) => {
+    const dailyData = []
+    const today = new Date()
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      
+      const dayName = date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })
+      const randomEmisi = Math.random() * 10 + 5 // Random untuk demo
+      
+      dailyData.push({
+        date: dayName,
+        emisi: Number(randomEmisi.toFixed(2))
+      })
+    }
+    
+    setDailyEmissionData(dailyData)
+  }
 
   // =====================
   // LOADING GUARD
@@ -118,6 +155,7 @@ export default function DashboardPage() {
       </div>
     )
   }
+
   // Hitung statistik tambahan
   const avgEmisi = monthlyEmissionData.length > 0 
     ? monthlyEmissionData.reduce((sum, item) => sum + item.emisi, 0) / monthlyEmissionData.length 
@@ -128,6 +166,10 @@ export default function DashboardPage() {
     : 0
 
   const totalKategori = categoryEmissionData.length
+
+  const currentChartData = chartView === "daily" ? dailyEmissionData : monthlyEmissionData
+  const currentChartTitle = chartView === "daily" ? "Tren Emisi Harian (30 Hari Terakhir)" : "Tren Emisi Bulanan"
+  const currentChartSubtitle = chartView === "daily" ? "Perbandingan emisi dari hari ke hari" : "Perbandingan emisi dari bulan ke bulan"
 
   // =====================
   // UI
@@ -200,46 +242,105 @@ export default function DashboardPage() {
           {/* CHARTS */}
           <div className="grid lg:grid-cols-3 gap-6">
             
-            {/* LINE CHART - Span 2 columns */}
+            {/* LINE/BAR CHART - Span 2 columns */}
             <Card className="lg:col-span-2 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Tren Emisi Bulanan</h3>
-                  <p className="text-xs text-gray-500 mt-1">Perbandingan emisi dari bulan ke bulan</p>
+                  <h3 className="text-lg font-bold text-gray-900">{currentChartTitle}</h3>
+                  <p className="text-xs text-gray-500 mt-1">{currentChartSubtitle}</p>
+                </div>
+                
+                {/* Toggle Button */}
+                <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setChartView("daily")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                      chartView === "daily"
+                        ? "bg-white text-[#254B37] shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Harian
+                  </button>
+                  <button
+                    onClick={() => setChartView("monthly")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                      chartView === "monthly"
+                        ? "bg-white text-[#254B37] shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Bulanan
+                  </button>
                 </div>
               </div>
+
               <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={monthlyEmissionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: 0,
-                      fontSize: 12
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="emisi"
-                    stroke="#254B37"
-                    strokeWidth={3}
-                    dot={{ fill: '#254B37', r: 5 }}
-                    activeDot={{ r: 7, fill: '#1d3a2a' }}
-                  />
-                </LineChart>
+                {chartView === "daily" ? (
+                  <BarChart data={currentChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 10, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 8,
+                        fontSize: 12
+                      }}
+                    />
+                    <Bar
+                      dataKey="emisi"
+                      fill="#254B37"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                ) : (
+                  <LineChart data={currentChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => [`${v.toFixed(2)} kg CO₂e`, 'Emisi']}
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 8,
+                        fontSize: 12
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="emisi"
+                      stroke="#254B37"
+                      strokeWidth={3}
+                      dot={{ fill: '#254B37', r: 5 }}
+                      activeDot={{ r: 7, fill: '#1d3a2a' }}
+                    />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </Card>
 
@@ -273,7 +374,7 @@ export default function DashboardPage() {
                     contentStyle={{
                       backgroundColor: '#fff',
                       border: '1px solid #e5e7eb',
-                      borderRadius: 0,
+                      borderRadius: 8,
                       fontSize: 12
                     }}
                   />

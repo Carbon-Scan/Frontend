@@ -124,3 +124,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.page-loading .chatbot-bubble {
+  display: none !important;
+}

@@ -49,7 +49,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ================= HERO ================= */}
-      <section className="pt-28 pb-28 px-6 bg-[#254B37] text-white">
+      <section className="pt-40 pb-28 px-6 bg-[#254B37] text-white">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
 
           <div className="pl-4 md:pl-8">
@@ -75,7 +75,7 @@ export default function LandingPage() {
           </div>
 
           <div className="relative w-full h-96 mx-auto">
-            <div className="absolute left-[-24px] top-1/2 -translate-y-1/2 translate-x-8 w-[280px] h-[280px] rounded-full overflow-hidden">
+            <div className="absolute -left-6 top-1/2 -translate-y-1/2 translate-x-8 w-[280px] h-[280px] rounded-full overflow-hidden">
               <Image src="/sayur.jpeg" alt="Sayur" fill className="object-cover" />
             </div>
 

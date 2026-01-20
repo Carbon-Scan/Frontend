@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Calendar, Leaf } from "lucide-react"
+import { ArrowLeft, Calendar, Leaf, Trees } from "lucide-react"
 
 import TopBar from "@/components/top-bar"
 import Card from "@/components/card"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
+
 
 type DetailItem = {
   produk: string
@@ -22,6 +24,13 @@ type EmissionDetail = {
 }
 
 export default function HistoryDetailPage() {
+  useEffect(() => {
+    document.body.classList.add("page-loading")
+    return () => {
+      document.body.classList.remove("page-loading")
+    }
+  }, [])
+
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
 
@@ -55,6 +64,7 @@ export default function HistoryDetailPage() {
         router.replace("/login")
       } finally {
         setLoading(false)
+        document.body.classList.remove("page-loading")
       }
     }
 
@@ -66,13 +76,30 @@ export default function HistoryDetailPage() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <TopBar />
         <main className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent"></div>
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-[#254B37] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm text-gray-600">Memuat detail emisi...</p>
+          </div>
         </main>
       </div>
     )
   }
 
   if (!data) return null
+
+  // ===============================
+  // CARBON OFFSET
+  // ===============================
+  const CARBON_OFFSET_RATE = 30 // Rp per kg CO₂e
+
+  const carbonOffsetCost = Math.round(
+    data.totalKarbon * CARBON_OFFSET_RATE
+  )
+
+  const OFFSET_PLATFORM_URL = "https://lindungihutan.com"
+
+  const formatRupiah = (value: number) =>
+    value.toLocaleString("id-ID")
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -91,25 +118,23 @@ export default function HistoryDetailPage() {
           </Button>
 
           {/* Summary Card */}
-          <Card className="p-6 sm:p-8 bg-linear-to-br from-emerald-50 to-white border-emerald-100">
+          <Card className="p-6 sm:p-8 bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
             <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    Detail Emisi
-                  </h1>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      {new Date(data.createdAt).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Detail Emisi
+                </h1>
+                <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                  <Calendar className="w-4 h-4" />
+                  <span>
+                    {new Date(data.createdAt).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
               </div>
 
@@ -119,7 +144,9 @@ export default function HistoryDetailPage() {
                     <Leaf className="w-6 h-6 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Total Emisi Karbon</p>
+                    <p className="text-sm text-gray-600">
+                      Total Emisi Karbon
+                    </p>
                     <p className="text-3xl font-bold text-emerald-600">
                       {data.totalKarbon.toFixed(2)}
                       <span className="text-lg ml-1">kg CO₂e</span>
@@ -156,7 +183,9 @@ export default function HistoryDetailPage() {
                   <tbody className="divide-y divide-gray-100">
                     {data.details.map((d, i) => (
                       <tr key={i} className="hover:bg-gray-50 transition">
-                        <td className="py-4 px-4 text-gray-900">{d.produk}</td>
+                        <td className="py-4 px-4 text-gray-900">
+                          {d.produk}
+                        </td>
                         <td className="py-4 px-4 text-right font-medium text-emerald-600">
                           {d.emisi.toFixed(2)} kg
                         </td>
@@ -179,7 +208,9 @@ export default function HistoryDetailPage() {
                     className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-gray-900">{d.produk}</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        {d.produk}
+                      </h3>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                         {d.kategori}
                       </span>
@@ -189,6 +220,36 @@ export default function HistoryDetailPage() {
                     </p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* ===============================
+              CARBON OFFSET (NEW SECTION)
+          =============================== */}
+          <Card className="p-6 sm:p-8 border border-gray-200">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                <Trees className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-500">
+                  Estimasi Biaya Carbon Offset
+                </p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  Rp {formatRupiah(carbonOffsetCost)}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Platform:{" "}
+                  <Link
+                    href={OFFSET_PLATFORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-emerald-600 hover:underline"
+                  >
+                    Lindungi Hutan
+                  </Link>
+                </p>
               </div>
             </div>
           </Card>
